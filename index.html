@@ -141,7 +141,8 @@
               var request = new XMLHttpRequest();
 
               // Read the lat/long info for markers
-              request.open("GET", "file:///home/jorge/Desktop/t1.csv", false);
+              //request.open("GET", "file:///home/jorge/Desktop/t1.csv", false);
+              request.open("GET", "t1.csv", false);
               request.send(null);
               returnValue = request.responseText;
 
