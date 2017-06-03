@@ -1,0 +1,234 @@
+ <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Porto POIs</title>
+
+        <style type="text/css">
+          #main {
+            margin: 60px 15px; 
+          }
+          #map { 
+            min-height: 600px; 
+            min-width: 800px; 
+          }
+        </style>
+
+        <script type="text/javascript"
+          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3791hRLOdsIqNRXxpKd5_AJQi8f8P5jo&sensor=false">
+        </script>
+        <script>
+
+          function CSVToArray( strData, strDelimiter ){
+        // Check to see if the delimiter is defined. If not,
+        // then default to comma.
+        strDelimiter = (strDelimiter || ",");
+
+        // Create a regular expression to parse the CSV values.
+        var objPattern = new RegExp(
+          (
+            // Delimiters.
+            "(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
+
+            // Quoted fields.
+            "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
+
+            // Standard fields.
+            "([^\"\\" + strDelimiter + "\\r\\n]*))"
+          ), "gi");
+
+        // Create an array to hold our data. Give the array
+        // a default empty first row.
+        var arrData = [[]];
+
+        // Create an array to hold our individual pattern
+        // matching groups.
+        var arrMatches = null;
+
+        // Keep looping over the regular expression matches
+        // until we can no longer find a match.
+        while (arrMatches = objPattern.exec( strData ))
+        {
+          // Get the delimiter that was found.
+          var strMatchedDelimiter = arrMatches[ 1 ];
+
+          // Check to see if the given delimiter has a length
+          // (is not the start of string) and if it matches
+          // field delimiter. If id does not, then we know
+          // that this delimiter is a row delimiter.
+          if (strMatchedDelimiter.length && (strMatchedDelimiter != strDelimiter))
+          {
+            // Since we have reached a new row of data,
+            // add an empty row to our data array.
+            arrData.push( [] );
+
+          }
+
+          // Now that we have our delimiter out of the way,
+          // let's check to see which kind of value we
+          // captured (quoted or unquoted).
+          if (arrMatches[ 2 ]){
+            // We found a quoted value. When we capture
+            // this value, unescape any double quotes.
+            var strMatchedValue = arrMatches[ 2 ].replace(
+              new RegExp( "\"\"", "g" ),
+              "\""
+              );
+
+          } else 
+          {
+            // We found a non-quoted value.
+            var strMatchedValue = arrMatches[ 3 ];
+          }
+
+          // Now that we have our value string, let's add
+          // it to the data array.
+          arrData[ arrData.length - 1 ].push( strMatchedValue );
+        }
+
+        // Return the parsed data.
+        return( arrData );
+      }
+          // code to draw map
+          var map;
+          var col = '#FF0000';
+          var link ;
+          var latLng;
+          var polypoints;
+
+          function initialize() {
+
+              var markersArray = [];
+              var markers = {};
+              var lat = 41.1613241376;
+              var lng = -8.6118308955;
+              var zm = 10;
+
+
+
+              var icons_info = {
+                  high: {
+                      icon: 'https://mt.googleapis.com/vt/icon/name=icons/onion/112-purple.png'
+                  },
+                  medium: {
+                      icon: 'https://mt.googleapis.com/vt/icon/name=icons/onion/24-blue.png'
+                  },
+                  low: {
+                      icon: 'https://mt.googleapis.com/vt/icon/name=icons/onion/163-lightblue.png'
+                  }
+              };
+
+
+              var mapOptions = {
+                  center: new google.maps.LatLng(lat, lng),
+                  zoom: zm,
+                  scrollwheel: true,
+                  scaleControl: true,
+                  mapTypeId: google.maps.MapTypeId.ROADMAP,
+                  zoomControl: true,
+                  zoomControlOptions: {
+                      style: google.maps.ZoomControlStyle.LARGE,
+                      position: google.maps.ControlPosition.RIGHT_TOP
+                  },
+                  panControl: true,
+                      panControlOptions: {
+                      position: google.maps.ControlPosition.TOP_RIGHT
+                  }
+              };
+
+              map = new google.maps.Map(document.getElementById('map'),mapOptions);
+
+
+              var request = new XMLHttpRequest();
+
+              // Read the lat/long info for markers
+              request.open("GET", "file:///home/jorge/Desktop/t1.csv", false);
+              request.send(null);
+              returnValue = request.responseText;
+
+              // Convert our data from the CVS file to a usable array
+              var data = CSVToArray(returnValue);
+              //alert(data);
+
+              for (var i = 0; i < data.length; i++)  {
+                  // Create a lat/long object readable by Google
+                  var myLatlng = new google.maps.LatLng(parseFloat(data[i][1]), parseFloat(data[i][2]));
+
+                  // Generate a marker from the lat/long object and add it to the map
+                  //alert(data[i]);
+                  var marker = new google.maps.Marker({
+                      position: myLatlng,
+                      map: map,
+                      optimized: false,
+                      image: data[i][3],
+                      image_icon: icons_info[data[i][4].toString()].icon, 
+                      icon: icons_info[data[i][4].toString()].icon,
+                      //label: data[i][3],
+                      title:data[i][0]
+                  });
+                  //alert(marker.icon)
+                  
+                  google.maps.event.addListener(marker, 'mouseover', function(event) {
+                  //this.setIcon('http://www.christielakekids.com/_images/map_pins/events/canoe-for-kids.png');
+                      var my_icon = {
+                          url: this.image, // url
+                          zIndex: 9999,
+                          scaledSize: new google.maps.Size(200, 200), // scaled size
+                          //origin: new google.maps.Point(0,0), // origin
+                          //anchor: new google.maps.Point(0, 0) // anchor
+                      };
+                      this.setIcon(my_icon);
+                  });
+    
+                  google.maps.event.addListener(marker, 'mouseout', function(event) {
+                      //alert (marker.icon)
+                      var my_icon = {
+                          url: this.image_icon, // url
+                          zIndex: 10
+                      };
+                      //this.setIcon(this.image_icon);
+                      this.setIcon(my_icon);
+                  });
+              }
+          } 
+
+  /*for (i = 0; i < locations_programs.length; i++) {  
+    var id = 'programs' + i;
+
+    marker = new google.maps.Marker({
+      position: new google.maps.LatLng(locations_programs[i][1], locations_programs[i][2]),
+      map: map
+      ,id: id
+      ,icon: 'http://www.christielakekids.com/_images/new/blue_circle.png'
+      ,image: 'http://recursos.visitporto.travel/pois/2781_3.jpg'
+      ,url: locations_programs[i][5]
+      ,zIndex:100
+    });
+
+
+
+      google.maps.event.addListener(marker, 'mouseover', function(event) {
+          //this.setIcon('http://www.christielakekids.com/_images/map_pins/events/canoe-for-kids.png');
+          var icon = {
+            url: this.image, // url
+            scaledSize: new google.maps.Size(200, 200), // scaled size
+            origin: new google.maps.Point(0,0), // origin
+            anchor: new google.maps.Point(0, 0) // anchor
+          };
+
+          this.setIcon(icon)
+      });
+      google.maps.event.addListener(marker, 'mouseout', function(event) {
+          this.setIcon('http://www.christielakekids.com/_images/new/blue_circle.png');
+      });
+
+
+
+  }*/
+
+            google.maps.event.addDomListener(window, 'load', initialize); 
+        </script>
+      </head>
+      <body>
+             <div id="map"></div>
+       </body>
+    </html>
